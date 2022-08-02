@@ -1,0 +1,19 @@
+[package]
+name = "tsap"
+version = "0.1.0"
+edition = "2018"
+
+[[bin]]
+name = "example"
+path = "src/example.rs"
+
+[dependencies]
+thiserror = "1.0"
+tsap_macro = { version = "0.1.0", path = "../tsap_macro" }
+toml = { version = "0.5", optional = true }
+serde = { version = "1.0", optional = true, features = ["derive"] }
+glob = "0.3"
+
+[features]
+default = ["toml"]
+toml = ["dep:serde", "dep:toml"]
