@@ -1,0 +1,12 @@
+[package]
+name = "tsap_tests"
+version = "0.0.0"
+authors = ["Lorenz Schmidt <bytesnake@mailbox.org>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+tsap = { path = "../tsap" }
+
+[dev-dependencies]
+macrotest = "=1.0.9"
