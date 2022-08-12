@@ -16,6 +16,12 @@ enum ParamError {
 }
 
 fn main() {
+    let p = ParamBuilder {
+        val_ntrees: 10,
+    };
+
+    let p = p.ntrees(100);
+    dbg!(&p.get_ntrees());
 }
 
 //https://ferrous-systems.com/blog/testing-proc-macros/

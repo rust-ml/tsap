@@ -2,7 +2,7 @@ use syn::{Expr, Item, ItemStruct};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, abort_call_site};
 
-type Ast = ItemStruct;
+type Ast = Item;
 
 pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
     const ERROR: &str = "this attribute takes no arguments";
@@ -16,8 +16,20 @@ pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
         }
     }
 
+    dbg!(&input);
     let parsed = match syn::parse2::<Item>(input) {
-        Ok(Item::Struct(item)) => item,
+        Ok(Item::Struct(item)) => {
+            if !item.generics.params.is_empty() {
+                abort!(
+                    item,
+                    "we don't support generics";
+                    help = "`#[params]' can only be used on structs without generics"
+                )
+            }
+
+            Item::Struct(item)
+        },
+        Ok(Item::Enum(item)) => Item::Enum(item),
         Ok(item) => {
             abort!(
                 item,
@@ -28,13 +40,6 @@ pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
         Err(_) => unreachable!(), // ?
     };
 
-    if !parsed.generics.params.is_empty() {
-        abort!(
-            parsed,
-            "we don't support generics";
-            help = "`#[params]' can only be used on structs without generics"
-        )
-    }
 
     parsed
 }
