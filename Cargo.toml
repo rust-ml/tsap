@@ -1,2 +1,2 @@
 [workspace]
-members = ["tsap", "tsap_macro"]
+members = ["tsap", "tsap_macro", "tests"]

@@ -10,3 +10,4 @@ tsap = { path = "../tsap" }
 
 [dev-dependencies]
 macrotest = "=1.0.9"
+trybuild = "1.0"

@@ -1,0 +1,10 @@
+error: item is not a struct
+
+         = help: `#[params]` can only be used on structs
+
+ --> tests/ui/not-a-struct.rs:4:1
+  |
+4 | / enum Param {
+5 | |     NotAStruct(usize),
+6 | | }
+  | |_^
