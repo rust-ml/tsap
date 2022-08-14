@@ -15,7 +15,7 @@ fn merge_use_second(a: toml::Value, b: toml::Value) -> Result<toml::Value> {
 }
 
 pub struct TomlBuilder {
-    root: toml::Value,
+    pub root: toml::Value,
     templates: Templates,
 }
 
@@ -94,6 +94,10 @@ impl TomlBuilder {
         self.root = merge_use_second(self.root, root)?;
 
         Ok(self)
+    }
+    
+    pub fn root(self) -> toml::Value {
+        self.root
     }
 }
 

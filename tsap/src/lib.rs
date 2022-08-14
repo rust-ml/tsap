@@ -10,6 +10,7 @@ pub mod templates;
 mod error;
 
 pub use error::{Result, Error};
+pub use toml_builder::TomlBuilder;
 
 pub trait ParamGuard {
     type Error;

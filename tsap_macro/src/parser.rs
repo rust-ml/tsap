@@ -1,4 +1,4 @@
-use syn::{Expr, Item, ItemStruct};
+use syn::{Expr, Item};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, abort_call_site};
 
@@ -16,7 +16,6 @@ pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
         }
     }
 
-    dbg!(&input);
     let parsed = match syn::parse2::<Item>(input) {
         Ok(Item::Struct(item)) => {
             if !item.generics.params.is_empty() {
