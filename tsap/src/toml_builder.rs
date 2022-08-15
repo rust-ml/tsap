@@ -5,11 +5,24 @@ use std::env;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 
+use toml::Value;
 use crate::{Result, Error, templates::Templates};
 
 fn merge_use_second(a: toml::Value, b: toml::Value) -> Result<toml::Value> {
     match (a,b) {
-        (toml::Value::Float(_), toml::Value::Float(b)) => Ok(toml::Value::Float(b)),
+        (Value::Float(_), Value::Float(b)) => Ok(Value::Float(b)),
+        (Value::Integer(_), Value::Integer(b)) => Ok(Value::Integer(b)),
+        (Value::String(_), Value::String(b)) => Ok(Value::String(b)),
+        (Value::Boolean(_), Value::Boolean(b)) => Ok(Value::Boolean(b)),
+        (Value::Datetime(_), Value::Datetime(b)) => Ok(Value::Datetime(b)),
+        (Value::Array(_), Value::Array(arr)) => Ok(Value::Array(arr)),
+        (Value::Table(mut t1), Value::Table(t2)) => {
+            for (k,v) in t2 {
+                t1.insert(k, v);
+            }
+
+            Ok(Value::Table(t1))
+        },
         _ => Err(Error::MergeFailed)
     }
 }
@@ -28,12 +41,10 @@ impl Default for TomlBuilder {
     }
 }
 
-impl TryFrom<&str> for TomlBuilder {
+impl TryFrom<toml::Value> for TomlBuilder {
     type Error = Error;
 
-    fn try_from(content: &str) -> Result<TomlBuilder> {
-        let root: toml::Value = content.parse()?;
-
+    fn try_from(root: toml::Value) -> Result<TomlBuilder> {
         let mut builder = TomlBuilder {
             templates: Templates::default(),
             root,
@@ -45,6 +56,16 @@ impl TryFrom<&str> for TomlBuilder {
     }
 }
 
+impl TryFrom<&str> for TomlBuilder {
+    type Error = Error;
+
+    fn try_from(content: &str) -> Result<TomlBuilder> {
+        let root: toml::Value = content.parse()?;
+
+        Self::try_from(root)
+    }
+}
+
 impl TryFrom<String> for TomlBuilder {
     type Error = Error;
 
@@ -52,6 +73,8 @@ impl TryFrom<String> for TomlBuilder {
         content.as_str().try_into()
     }
 }
+
+
 
 impl TomlBuilder {
     pub fn from_file<T: AsRef<Path>>(path: T) -> Result<TomlBuilder> {
@@ -88,6 +111,7 @@ impl TomlBuilder {
         f.read_to_string(&mut content)?;
 
         let root: toml::Value = content.parse()?;
+
         let root = self.templates.resolve(root);
 
         // merge both dictionaries
@@ -95,6 +119,17 @@ impl TomlBuilder {
 
         Ok(self)
     }
+
+    //pub fn amend<T: TryInto<Value>>(mut self, val: T) -> Result<Self>
+    //    where Error: From<<T as TryInto<Value>>::Error> {
+    //    let root = val.try_into()?;
+    //    let root = self.templates.resolve(root);
+
+    //    // merge both dictionaries
+    //    self.root = merge_use_second(self.root, root)?;
+
+    //    Ok(self)
+    //}
     
     pub fn root(self) -> toml::Value {
         self.root

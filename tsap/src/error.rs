@@ -16,6 +16,8 @@ pub enum Error {
     MergeFailed,
     #[error("key {0} does not exist in {1}")]
     KeyNotExists(String, String),
+    #[error("parameter violates constrain: {0}")]
+    InvalidParam(String),
     #[error("input/output error")]
     Io {
         #[from]

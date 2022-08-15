@@ -59,6 +59,7 @@ impl Intermediate {
             }
 
             use std::path::Path;
+            use std::convert::TryInto;
             use toml::Value;
             use tsap::TomlBuilder;
 
@@ -67,6 +68,26 @@ impl Intermediate {
                     TomlBuilder::from_file(path)
                         .map(|x| #builder_name(x))
                         .map_err(|x| x.into())
+                }
+
+                pub fn try_from<V: TryInto<TomlBuilder>>(val: V) -> Result<#builder_name, V::Error> {
+
+                    val.try_into()
+                        .map(|x| #builder_name(x))
+                        .map_err(|x| x.into())
+                }
+
+                pub fn from<V: TryInto<TomlBuilder>>(val: V) -> #builder_name
+                    where <V as TryInto<TomlBuilder>>::Error: std::fmt::Debug {
+                    Self::try_from(val).unwrap()
+                }
+            }
+
+            impl #builder_name {
+                pub fn amend_file<T: AsRef<Path>>(mut self, path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
+                    self.0 = self.0.amend_file(path)?;
+
+                    Ok(self)
                 }
             }
 

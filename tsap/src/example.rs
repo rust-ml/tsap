@@ -1,47 +1,47 @@
-extern crate tsap;
-
-use std::convert::TryInto;
 use tsap::{param, ParamGuard};
-use thiserror::Error;
 
 #[param]
-struct Param {
-    ntrees: usize
+pub struct Param {
+    pub ntrees: usize
 }
 
 impl ParamGuard for Param {
-    type Error = ParamError;
+    type Error = tsap::Error;
 
     fn check(&self) -> Result<(), Self::Error> {
         if self.ntrees < 50 {
-            Err(ParamError::InvalidNTrees)
-        } else {
-            Ok(())
+            return Err(tsap::Error::InvalidParam(
+                format!("number trees >= 50, but is {}", self.ntrees)
+            ));
         }
+
+        Ok(())
     }
 }
 
-#[derive(Debug, Error)]
-enum ParamError {
-    #[error("invalid number of trees")]
-    InvalidNTrees,
-    #[error("internal error by tsap")]
-    Tsap(#[from] tsap::Error),
-}
+fn main() -> Result<(), tsap::Error> {
+    let p = Param::from(toml::toml!(
+        ntrees = 400
+        rev = { cmd = "git status" }
+    ));
 
-fn main() {
-    let p = Param::from_file("config/main.toml").unwrap()
-        .ntrees(100);
-        //.amend_file("config/main.toml")
+    dbg!(&p.0.root);
+
+    let p = Param::from_file("main.toml")?
+        .ntrees(100)
+        .amend_file("main.toml")?;
+
         //.amend(toml!(
         //    ntrees = 1000
         //))
         //.amend_args();
 
 
-    let p = p.ntrees(100).ntrees(40);
+    let p = p.ntrees(100);
     dbg!(&p.get_ntrees());
     let p: Param = p.try_into().unwrap();
+
+    Ok(())
 }
 
 //https://ferrous-systems.com/blog/testing-proc-macros/
