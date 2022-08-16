@@ -59,14 +59,12 @@ impl Template for RunCommand {
             _ => panic!("Not a string as command")
         };
 
-        let cmd = cmd.split(" ").collect::<Vec<_>>();
-
-        let output = Command::new(&cmd[0])
-            .args(&cmd[1..])
+        let output = Command::new("/usr/bin/bash").arg("-c")
+            .arg(&cmd)
             .output()
             .unwrap();
 
-        let stdout = String::from_utf8(output.stdout).unwrap();
+        let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
         Value::String(stdout)
     }
@@ -85,7 +83,7 @@ impl Template for FromFile {
         let mut content = String::new();
         f.read_to_string(&mut content).unwrap();
 
-        self.base_path.insert(key, field.base_path).unwrap();
+        self.base_path.insert(key, field.base_path);
 
         // override current node with content of file
         content.parse::<toml::Value>().unwrap()

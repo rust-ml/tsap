@@ -1,17 +1,37 @@
+use std::convert::TryInto;
 use tsap::{param, ParamGuard};
 
 #[param]
+#[derive(Debug)]
+pub enum ModelParam {
+    RandomForest {
+        ntrees: usize
+    },
+    SVClassifier {
+        nu: f32
+    }
+}
+
+impl ParamGuard for ModelParam {
+    type Error = tsap::Error;
+}
+
+#[param]
+#[derive(Debug)]
 pub struct Param {
-    pub ntrees: usize
+    seed: usize,
+    rev: String,
+
+    model: ModelParam,
 }
 
 impl ParamGuard for Param {
     type Error = tsap::Error;
 
     fn check(&self) -> Result<(), Self::Error> {
-        if self.ntrees < 50 {
+        if self.seed < 50 {
             return Err(tsap::Error::InvalidParam(
-                format!("number trees >= 50, but is {}", self.ntrees)
+                format!("seed >= 50, but is {}", self.seed)
             ));
         }
 
@@ -21,25 +41,24 @@ impl ParamGuard for Param {
 
 fn main() -> Result<(), tsap::Error> {
     let p = Param::from(toml::toml!(
-        ntrees = 400
-        rev = { cmd = "git status" }
+        rev = { cmd = "git rev-parse --short HEAD" }
+        seed = 100
+
+        [model]
+        from_file = { base_path = "config/models/", default = "randomforest" }
     ));
 
     dbg!(&p.0.root);
 
-    let p = Param::from_file("main.toml")?
-        .ntrees(100)
-        .amend_file("main.toml")?;
+    let p = Param::from_file("config/main.toml")?
+        .seed(100)
+        .amend_file("config/main.toml")?;
 
-        //.amend(toml!(
-        //    ntrees = 1000
-        //))
-        //.amend_args();
+    let p = p.seed(300);
+    dbg!(&p.get_seed());
+    let p: Param = p.try_into()?;
 
-
-    let p = p.ntrees(100);
-    dbg!(&p.get_ntrees());
-    let p: Param = p.try_into().unwrap();
+    dbg!(&p);
 
     Ok(())
 }

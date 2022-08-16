@@ -1,6 +1,5 @@
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
-
 use crate::model::Model;
 
 #[derive(Debug)]
@@ -15,9 +14,8 @@ impl Intermediate {
         let Model { name, item, fields } = model;
 
         let item = quote!(
-            use serde::{Serialize, Deserialize};
-
-            #[derive(Serialize, Deserialize)]
+            #[derive(serde::Serialize, serde::Deserialize)]
+            #[serde(tag = "variant")]
             #item
         );
 
@@ -31,7 +29,7 @@ impl Intermediate {
 
             quote!(
                 fn #name(mut self, val: #typ) -> Self {
-                    self.0.root[#valname] = Value::try_from(val).unwrap();
+                    self.0.root[#valname] = toml::Value::try_from(val).unwrap();
 
                     self
                 }
@@ -43,9 +41,7 @@ impl Intermediate {
         });
 
         let impls = quote!(
-            use std::convert::TryFrom;
-
-            impl TryFrom<#builder_name> for #name {
+            impl std::convert::TryFrom<#builder_name> for #name {
                 type Error = <#name as ParamGuard>::Error;
 
                 fn try_from(val: #builder_name) -> Result<#name, Self::Error> {
@@ -58,33 +54,28 @@ impl Intermediate {
                 }
             }
 
-            use std::path::Path;
-            use std::convert::TryInto;
-            use toml::Value;
-            use tsap::TomlBuilder;
-
             impl #name {
-                pub fn from_file<T: AsRef<Path>>(path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
-                    TomlBuilder::from_file(path)
+                pub fn from_file<T: AsRef<std::path::Path>>(path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
+                    tsap::TomlBuilder::from_file(path)
                         .map(|x| #builder_name(x))
                         .map_err(|x| x.into())
                 }
 
-                pub fn try_from<V: TryInto<TomlBuilder>>(val: V) -> Result<#builder_name, V::Error> {
+                pub fn try_from<V: std::convert::TryInto<tsap::TomlBuilder>>(val: V) -> Result<#builder_name, V::Error> {
 
                     val.try_into()
                         .map(|x| #builder_name(x))
                         .map_err(|x| x.into())
                 }
 
-                pub fn from<V: TryInto<TomlBuilder>>(val: V) -> #builder_name
-                    where <V as TryInto<TomlBuilder>>::Error: std::fmt::Debug {
+                pub fn from<V: std::convert::TryInto<tsap::TomlBuilder>>(val: V) -> #builder_name
+                    where <V as std::convert::TryInto<tsap::TomlBuilder>>::Error: std::fmt::Debug {
                     Self::try_from(val).unwrap()
                 }
             }
 
             impl #builder_name {
-                pub fn amend_file<T: AsRef<Path>>(mut self, path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
+                pub fn amend_file<T: AsRef<std::path::Path>>(mut self, path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
                     self.0 = self.0.amend_file(path)?;
 
                     Ok(self)
