@@ -28,8 +28,12 @@ impl Intermediate {
             let valname = format!("{}", name);
 
             quote!(
-                fn #name(mut self, val: #typ) -> Self {
-                    self.0.root[#valname] = toml::Value::try_from(val).unwrap();
+                fn #name<T: Into<tsap::Call<#typ>>>(mut self, val: T) -> Self {
+                    // we can assume a table, because proc-macro only implements on structs
+                    let table = self.0.root.as_table_mut().unwrap();
+                    let old_val: #typ = table.remove(#valname).unwrap().try_into().unwrap();
+                    let val: #typ = val.into().call(old_val);
+                    table.insert(#valname.to_string(), toml::Value::try_from(val).unwrap());
 
                     self
                 }

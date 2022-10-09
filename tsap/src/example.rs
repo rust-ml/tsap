@@ -21,6 +21,7 @@ impl ParamGuard for ModelParam {
 pub struct Param {
     seed: usize,
     rev: String,
+    date: String,
 
     model: ModelParam,
 }
@@ -29,9 +30,9 @@ impl ParamGuard for Param {
     type Error = tsap::Error;
 
     fn check(&self) -> Result<(), Self::Error> {
-        if self.seed < 50 {
+        if self.rev.len() != 7 {
             return Err(tsap::Error::InvalidParam(
-                format!("seed >= 50, but is {}", self.seed)
+                format!("short revision should have length 7, but is {}", self.rev)
             ));
         }
 
@@ -42,6 +43,7 @@ impl ParamGuard for Param {
 fn main() -> Result<(), tsap::Error> {
     let p = Param::from(toml::toml!(
         rev = { cmd = "git rev-parse --short HEAD" }
+        date = { cmd = "date '+%d-%m-%Y %H:%M:%S'" }
         seed = 100
 
         [model]
@@ -51,11 +53,13 @@ fn main() -> Result<(), tsap::Error> {
     dbg!(&p.0.root);
 
     let p = Param::from_file("config/main.toml")?
-        .seed(100)
+        .seed(50)
+        .seed(|x| x+3)
+        .seed(|x| x+3)
         .amend_file("config/main.toml")?;
 
-    let p = p.seed(300);
     dbg!(&p.get_seed());
+
     let p: Param = p.try_into()?;
 
     dbg!(&p);
