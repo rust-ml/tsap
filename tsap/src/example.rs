@@ -1,4 +1,5 @@
-use std::convert::TryInto;
+#![feature(try_trait_v2)]
+
 use tsap::{param, ParamGuard};
 
 #[param]
@@ -25,6 +26,16 @@ pub struct Param {
     model: ModelParam,
 }
 
+impl Default for Param {
+    fn default() -> Self {
+        Param {
+            seed: 0,
+            rev: "Blub".into(),
+            model: ModelParam::RandomForest { ntrees: 10 }
+        }
+    }
+}
+
 impl ParamGuard for Param {
     type Error = tsap::Error;
 
@@ -40,6 +51,15 @@ impl ParamGuard for Param {
 }
 
 fn main() -> Result<(), tsap::Error> {
+    let p = Param::default()
+        .seed(100)?
+        .seed(50)
+        .model(ModelParam::SVClassifier { nu: 100.0 })?;
+
+    Ok(())
+}
+
+/*fn main() -> Result<(), tsap::Error> {
     let p = Param::from(toml::toml!(
         rev = { cmd = "git rev-parse --short HEAD" }
         seed = 100
@@ -61,7 +81,7 @@ fn main() -> Result<(), tsap::Error> {
     dbg!(&p);
 
     Ok(())
-}
+}*/
 
 //https://ferrous-systems.com/blog/testing-proc-macros/
 //https://github.com/ferrous-systems/testing-proc-macros/blob/main/src/lib.rs

@@ -8,94 +8,135 @@ use crate::model::Model;
 #[derive(Debug)]
 pub struct Intermediate {
     pub(crate) item: Item,
-    pub(crate) builder: Option<Item>,
+    pub(crate) builder: Option<TokenStream>,
     pub(crate) impls: TokenStream,
 }
 
 impl Intermediate {
-    pub(crate) fn builder(item: &Item) -> Option<Item> {
-        let mut struc = match item {
-            Item::Struct(obj) => obj.clone(),
-            _ => return None
-        };
-
-        struc.ident = format_ident!("{}Builder", struc.ident);
-
-        // prefix each field
-        for field in &mut struc.fields {
-            field.ident = Some(format_ident!("val_{}", field.ident.as_ref().unwrap()));
-        }
-
-        Some(Item::Struct(struc))
-    }
-
     pub(crate) fn lower(model: Model) -> Intermediate {
         let Model { name, item, fields } = model;
 
-        let builder = Intermediate::builder(&item);
+        if let Item::Enum(_) = &item {
+            return Intermediate {
+                item,
+                builder: None,
+                impls: quote!()
+            };
+        }
+
         let builder_name = format_ident!("{}Builder", name);
+        let builder = quote!(
+            pub struct #builder_name {
+                inner: #name
+            }
+        );
+
         let impls = fields.iter()
             .map(|(name, typ)| {
-                let valname = format_ident!("val_{}", name);
+                let getter = format_ident!("get_{}", name);
+
+                quote!(
+                    fn #name(mut self, val: #typ) -> #builder_name {
+                        self.#name = val;
+
+                        self.into()
+                    }
+
+                    fn #getter(&self) -> &#typ {
+                        &self.#name
+                    }
+                )
+            });
+
+        let builder_impls = fields.iter()
+            .map(|(name, typ)| {
                 let getter = format_ident!("get_{}", name);
 
                 quote!(
                     fn #name(mut self, val: #typ) -> Self {
-                        self.#valname = val;
+                        self.inner.#name = val;
 
                         self
                     }
 
                     fn #getter(&self) -> &#typ {
-                        &self.#valname
+                        &self.inner.#name
                     }
                 )
             });
 
-        let assigns = fields.iter()
-            .map(|(name, typ)| {
-                let valname = format_ident!("val_{}", name);
-
-                quote!(
-                    #name: val.#valname
-                )
-            });
-
-
-        let impls = quote!(
-            use std::convert::TryFrom;
-            impl #builder_name {
-                #( 
+        let mut impls = quote!(
+            impl #name {
+                #(
                     #impls
                 )*
             }
 
-            impl TryFrom<#builder_name> for #name {
-                type Error = <#name as ParamGuard>::Error;
+            impl #builder_name {
+                #( 
+                    #builder_impls
+                )*
 
-                fn try_from(val: #builder_name) -> Result<#name, Self::Error> {
-                    let res = #name {
-                        #( 
-                            #assigns 
-                        )*
-                    };
-
-                    res.check()?;
-
-                    Ok(res)
+                pub fn build(self) -> Result<#name, <#name as ParamGuard>::Error> {
+                    std::convert::TryFrom::try_from(self)
                 }
             }
 
-            //impl From<#builder_name> for #name {
-            //    fn from(val: #builder_name) -> #name {
-            //        Self::try_from(val).unwrap()
-            //    }
-            //}
+            impl std::convert::TryFrom<#builder_name> for #name {
+                type Error = <#name as ParamGuard>::Error;
+
+                fn try_from(val: #builder_name) -> Result<#name, Self::Error> {
+                    val.inner.check()?;
+
+                    Ok(val.inner)
+                }
+            }
+
+            impl std::convert::From<#name> for #builder_name {
+                fn from(val: #name) -> #builder_name {
+                    #builder_name {
+                        inner: val,
+                    }
+                }
+            }
         );
+
+        if cfg!(feature = "impl_try") {
+            impls = quote!(
+                #impls
+
+                impl std::ops::Try for #builder_name {
+                    type Output = #name;
+                    type Residual = Result<std::convert::Infallible, <#name as ParamGuard>::Error>;
+
+                    fn from_output(output: Self::Output) -> Self {
+                        #builder_name {
+                            inner: output
+                        }
+                    }
+
+                    fn branch(self) -> std::ops::ControlFlow<Self::Residual, Self::Output> {
+                        match self.build() {
+                            Ok(v) => std::ops::ControlFlow::Continue(v),
+                            Err(e) => std::ops::ControlFlow::Break(Err(e)),
+                        }
+                    }
+                }
+
+                impl std::ops::FromResidual<<#builder_name as std::ops::Try>::Residual> for #builder_name {
+                    #[track_caller]
+                    fn from_residual(residual: Result<std::convert::Infallible, <#name as ParamGuard>::Error>) -> Self {
+                        #builder_name {
+                            inner: #name::default()
+                        }
+                    }
+                }
+            );
+        }
 
         Intermediate {
             item,
-            builder,
+            builder: Some(builder),
             impls,
         }
     }

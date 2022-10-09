@@ -54,6 +54,16 @@ impl Intermediate {
                 }
             }
 
+            impl std::convert::From<#name> for #builder_name {
+                fn from(val: #name) -> #builder_name {
+                    let val = toml::Value::try_from(val).unwrap();
+
+                    use std::convert::TryFrom;
+                    let val = tsap::TomlBuilder::try_from(val).unwrap();
+                    #builder_name(val)
+                }
+            }
+
             impl #name {
                 pub fn from_file<T: AsRef<std::path::Path>>(path: T) -> Result<#builder_name, <#name as ParamGuard>::Error> {
                     tsap::TomlBuilder::from_file(path)
