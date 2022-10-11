@@ -1,6 +1,35 @@
-#![feature(try_trait_v2)]
+//#![feature(try_trait_v2)]
 
-use tsap::{param, ParamGuard};
+use tsap::{param, ParamGuard, Call};
+
+/*
+#[param]
+#[derive(Debug)]
+pub struct SVClassifier {
+    nu: f32
+}
+
+impl ParamGuard for SVClassifier {
+    type Error = tsap::Error;
+
+    fn check(&self) -> Result<(), Self::Error> {
+        if self.nu < 0.0 {
+            return Err(tsap::Error::InvalidParam(
+                format!("SV classifier regularization should be positive, but {}", self.nu)
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+impl Default for SVClassifier {
+    fn default() -> Self {
+        SVClassifier {
+            nu: 100.0,
+        }
+    }
+}
 
 #[param]
 #[derive(Debug)]
@@ -8,36 +37,43 @@ pub enum ModelParam {
     RandomForest {
         ntrees: usize
     },
-    SVClassifier {
-        nu: f32
+    SVClassifier(SVClassifier),
+}
+
+impl From<SVClassifier> for Call<ModelParam> {
+    fn from(val: SVClassifier) -> Self {
+        Call::from(ModelParam::SVClassifier(val))
     }
 }
 
 impl ParamGuard for ModelParam {
     type Error = tsap::Error;
 }
+*/
 
 #[param]
 #[derive(Debug)]
-pub struct Param {
+pub struct Param<const C: bool, T> {
     seed: usize,
-    rev: String,
-    date: String,
+    blub: T,
+    //rev: String,
+    //date: String,
 
-    model: ModelParam,
+    //model: ModelParam,
 }
 
-impl Default for Param {
+impl Default for Param<true> {
     fn default() -> Self {
         Param {
             seed: 0,
-            rev: "Blub".into(),
-            model: ModelParam::RandomForest { ntrees: 10 }
+            //rev: "Blub".into(),
+            //date: "null".into(),
+            //model: ModelParam::RandomForest { ntrees: 10 }
         }
     }
 }
 
-impl ParamGuard for Param {
+impl<const C: bool> ParamGuard for Param<C> {
     type Error = tsap::Error;
 
     fn check(&self) -> Result<(), Self::Error> {
@@ -53,9 +89,18 @@ impl ParamGuard for Param {
 
 fn main() -> Result<(), tsap::Error> {
     let p = Param::default()
-        .seed(100)?
-        .seed(50)
-        .model(ModelParam::SVClassifier { nu: 100.0 })?;
+        .seed(100)
+        .build()?
+        .seed(|x| x+1)
+        //.try_seed(|x| Ok(x + 1000))
+        .model(|x| x.svclassifier(|x| x.nu(10.0)))
+        // do we really need a Box<TryInto<SVClassifierParam>> here? Distinction between Param and
+        // ParamBuilder not easy to make, but how plays this together with trait bound on return
+        // value
+        //.try_model(|x| x.try_svclassifier(|x| x.nu(10.0)))
+        //.model(|obj| obj.nu(1000.0).build()?)
+        //.model(ModelParam::SVClassifier { nu: 100.0 })
+        .build()?;
 
     Ok(())
 }

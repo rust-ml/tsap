@@ -1,4 +1,4 @@
-use syn::{Expr, Item};
+use syn::{Expr, Item, GenericParam};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, abort_call_site};
 
@@ -18,6 +18,22 @@ pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
 
     let parsed = match syn::parse2::<Item>(input) {
         Ok(Item::Struct(item)) => {
+            let params = &item.generics.params;
+
+            match params.first() {
+                None => {
+                    abort!(
+                        item,
+                        "parameter should have a const boolean to indicate checking";
+                        help = "`#[params]' generates param guards based on the type"
+                    )
+                },
+                Some(GenericParam::Type(_)) | Some(GenericParam::Lifetime(_)) => {
+                },
+                _ => {}
+            }
+
+            dbg!(&item);
             if !item.generics.params.is_empty() {
                 abort!(
                     item,

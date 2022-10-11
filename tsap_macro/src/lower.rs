@@ -27,19 +27,31 @@ impl Intermediate {
         let builder_name = format_ident!("{}Builder", name);
         let builder = quote!(
             pub struct #builder_name {
-                inner: #name
+                inner: Result<#name, <#name as ParamGuard>::Error>
             }
         );
 
         let impls = fields.iter()
             .map(|(name, typ)| {
                 let getter = format_ident!("get_{}", name);
+                let tryset = format_ident!("try_{}", name);
 
                 quote!(
-                    fn #name(mut self, val: #typ) -> #builder_name {
-                        self.#name = val;
+                    fn #name<T: Into<tsap::Call<#typ>>>(mut self, val: T) -> #builder_name {
+                        self.#name = val.into().call(self.#name);
 
                         self.into()
+                    }
+
+                    fn #tryset<T: Into<tsap::TryCall<#typ>>>(mut self, val: T) -> #builder_name {
+                        match val.into().call(self.#name) {
+                            Ok(val) => { 
+                                self.#name = val; 
+
+                                #builder_name { inner: Ok(self) }
+                            },
+                            Err(err) => #builder_name { inner: Err(err.into()) },
+                        }
                     }
 
                     fn #getter(&self) -> &#typ {
@@ -51,16 +63,30 @@ impl Intermediate {
         let builder_impls = fields.iter()
             .map(|(name, typ)| {
                 let getter = format_ident!("get_{}", name);
+                let tryset = format_ident!("try_{}", name);
 
                 quote!(
-                    fn #name(mut self, val: #typ) -> Self {
-                        self.inner.#name = val;
+                    fn #name<T: Into<tsap::Call<#typ>>>(mut self, val: T) -> Self {
+                        self.inner = self.inner.map(|mut x| {
+                            x.#name = val.into().call(x.#name);
+
+                            x
+                        });
 
                         self
                     }
 
+                    fn #tryset<T: Into<tsap::TryCall<#typ>>>(mut self, val: T) -> Self {
+                        self.inner = self.inner.and_then(|mut x| {
+                            x.#name = val.into().call(x.#name)?;
+
+                            Ok(x)
+                        });
+
+                        self
+                    }
                     fn #getter(&self) -> &#typ {
-                        &self.inner.#name
+                        &self.inner.as_ref().unwrap().#name
                     }
                 )
             });
@@ -86,16 +112,14 @@ impl Intermediate {
                 type Error = <#name as ParamGuard>::Error;
 
                 fn try_from(val: #builder_name) -> Result<#name, Self::Error> {
-                    val.inner.check()?;
-
-                    Ok(val.inner)
+                    val.inner.and_then(|x| { x.check()?; Ok(x)})
                 }
             }
 
             impl std::convert::From<#name> for #builder_name {
                 fn from(val: #name) -> #builder_name {
                     #builder_name {
-                        inner: val,
+                        inner: Ok(val),
                     }
                 }
             }
