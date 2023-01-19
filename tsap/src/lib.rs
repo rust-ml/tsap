@@ -29,23 +29,28 @@ impl<T> Call<T> {
     }
 }
 
-impl<T: 'static> From<T> for Call<T> {
-    fn from(val: T) -> Call<T> {
-        Call(Box::new(move |_| val))
-    }
-}
+//impl<T: 'static> From<T> for Call<T> {
+//    fn from(val: T) -> Call<T> {
+//        Call(Box::new(move |_| val))
+//    }
+//}
 
-impl<F: 'static> From<F> for Call<usize> where F: FnOnce(usize) -> usize {
-    fn from(val: F) -> Call<usize> {
+impl<F: 'static, T> From<F> for Call<T> where F: FnOnce(T) -> T {
+    fn from(val: F) -> Call<T> {
         Call(Box::new(val))
     }
 }
-
-impl<F: 'static> From<F> for Call<f64> where F: FnOnce(f64) -> f64 {
-    fn from(val: F) -> Call<f64> {
-        Call(Box::new(val))
-    }
-}
+//impl<F: 'static> From<F> for Call<usize> where F: FnOnce(usize) -> usize {
+//    fn from(val: F) -> Call<usize> {
+//        Call(Box::new(val))
+//    }
+//}
+//
+//impl<F: 'static> From<F> for Call<f64> where F: FnOnce(f64) -> f64 {
+//    fn from(val: F) -> Call<f64> {
+//        Call(Box::new(val))
+//    }
+//}
 
 /// Caller semantic to accept owned values and closures in builder pattern
 pub struct TryCall<T>(Box<dyn FnOnce(T) -> Result<T>>);

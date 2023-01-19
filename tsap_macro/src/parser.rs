@@ -1,4 +1,4 @@
-use syn::{Expr, Item, GenericParam};
+use syn::{Expr, Item, GenericParam, Fields};
 use proc_macro2::TokenStream;
 use proc_macro_error::{abort, abort_call_site};
 
@@ -16,45 +16,66 @@ pub(crate) fn parse(args: TokenStream, input: TokenStream) -> Ast {
         }
     }
 
-    let parsed = match syn::parse2::<Item>(input) {
+    let (parsed, first_generic) = match syn::parse2::<Item>(input) {
         Ok(Item::Struct(item)) => {
-            let params = &item.generics.params;
+            let first = item.generics.params.first().map(|x| x.clone());
 
-            match params.first() {
-                None => {
-                    abort!(
-                        item,
-                        "parameter should have a const boolean to indicate checking";
-                        help = "`#[params]' generates param guards based on the type"
-                    )
-                },
-                Some(GenericParam::Type(_)) | Some(GenericParam::Lifetime(_)) => {
-                },
-                _ => {}
-            }
-
-            dbg!(&item);
-            if !item.generics.params.is_empty() {
-                abort!(
-                    item,
-                    "we don't support generics";
-                    help = "`#[params]' can only be used on structs without generics"
-                )
-            }
-
-            Item::Struct(item)
+            (
+                Item::Struct(item),
+                first
+            )
         },
-        Ok(Item::Enum(item)) => Item::Enum(item),
+        Ok(Item::Enum(item)) => {
+            for variant in &item.variants {
+                match variant.fields {
+                    Fields::Named(_) => {
+                        abort!(
+                            variant,
+                            "named enum variants are not supported";
+                            help = "use unnamed variant"
+                        )
+                    },
+                    _ => {}
+                }
+            }
+
+            let first = item.generics.params.first().map(|x| x.clone());
+
+            (
+                Item::Enum(item),
+                first
+            )
+        },
         Ok(item) => {
             abort!(
                 item,
-                "item is not a struct";
-                help = "`#[params]` can only be used on structs"
+                "item is not a struct or enum";
+                help = "`#[params]` can only be used on structs or enums"
             )
+        },
+        Err(err) => {
+            panic!("could not parse item: {}", err);
         }
-        Err(_) => unreachable!(), // ?
     };
 
+
+    match first_generic {
+        None => {
+            abort!(
+                parsed,
+                "parameter sets should have a const boolean to indicate checking";
+                help = "add a const boolean as your first generic"
+            )
+        },
+        Some(GenericParam::Type(_)) | Some(GenericParam::Lifetime(_)) => {
+            abort!(
+                parsed,
+                "parameter sets should have a const boolean to indicate checking";
+                help = "add a const boolean as your first generic"
+            )
+        },
+        _ => {}
+    }
 
     parsed
 }
@@ -70,7 +91,7 @@ mod tests {
             quote!(),
             quote!(
                 #[param]
-                struct Param {
+                struct Param<const C: bool, T> {
                     ntrees: usize,
                     max_depth: usize
                 }
@@ -79,32 +100,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn invalid_generics() {
+    fn valid_enum() {
         parse(
             quote!(),
             quote!(
                 #[param]
-                struct Param<T> {
-                    ntrees: usize,
-                    max_depth: T
+                enum Param<const C: bool, T> {
+                    SVClassifier,
+                    IsolationForest(T),
                 }
             )
         );
     }
 
-    #[test]
-    #[should_panic]
-    fn invalid_enum() {
-        parse(
-            quote!(),
-            quote!(
-                #[param]
-                enum Param {
-                    ntrees: usize,
-                    max_depth: usize
-                }
-            )
-        );
-    }
 }

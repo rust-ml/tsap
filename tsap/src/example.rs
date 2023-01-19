@@ -1,4 +1,4 @@
-//#![feature(try_trait_v2)]
+#![feature(try_trait_v2)]
 
 use tsap::{param, ParamGuard, Call};
 
@@ -51,21 +51,68 @@ impl ParamGuard for ModelParam {
 }
 */
 
+//#[param]
+//pub enum Param<const C: bool> {
+//    Blub(Param2<C, C>, u32),
+//    Bla
+//}
+//#[param]
+//#[derive(Debug)]
+//pub struct SVClassifier<const C: bool> {
+//    nu: f32
+//}
+//
+//impl<const C: bool> ParamGuard for SVClassifier<C> {
+//    type Error = tsap::Error;
+//
+//    fn check(&self) -> Result<(), Self::Error> {
+//        Ok(())
+//    }
+//}
+//
+//impl Default for SVClassifier<true> {
+//    fn default() -> Self {
+//        SVClassifier {
+//            nu: 0.1
+//        }
+//    }
+//}
+//
+//#[param]
+//#[derive(Debug)]
+//pub enum Model<const C: bool> {
+//    SVClassifier(SVClassifier<C>),
+//}
+//
+//impl Default for Model<true> {
+//    fn default() -> Self {
+//        Model::SVClassifier(SVClassifier::default())
+//    }
+//}
+//
+//impl<const C: bool> ParamGuard for Model<C> {
+//    type Error = tsap::Error;
+//
+//    fn check(&self) -> Result<(), Self::Error> {
+//        Ok(())
+//    }
+//}
+
 #[param]
 #[derive(Debug)]
-pub struct Param<const C: bool, T> {
-    seed: usize,
-    blub: T,
+pub struct Param<const C: bool, T: Default> {
+    seed: T,
+    //model: Model<C>,
     //rev: String,
     //date: String,
 
     //model: ModelParam,
 }
 
-impl Default for Param<true> {
+impl<T: Default> Default for Param<true, T> {
     fn default() -> Self {
         Param {
-            seed: 0,
+            seed: T::default()
             //rev: "Blub".into(),
             //date: "null".into(),
             //model: ModelParam::RandomForest { ntrees: 10 }
@@ -73,19 +120,23 @@ impl Default for Param<true> {
     }
 }
 
-impl<const C: bool> ParamGuard for Param<C> {
+impl<const C: bool, T: Default> ParamGuard for Param<C, T> {
     type Error = tsap::Error;
 
     fn check(&self) -> Result<(), Self::Error> {
-        if self.rev.len() != 7 {
-            return Err(tsap::Error::InvalidParam(
-                format!("short revision should have length 7, but is {}", self.rev)
-            ));
-        }
-
         Ok(())
     }
 }
+fn main() -> Result<(), tsap::Error> {
+    let param = Param::default()
+        .seed(|x| x+1)?;
+
+    Ok(())
+}
+
+/*
+
+
 
 fn main() -> Result<(), tsap::Error> {
     let p = Param::default()
@@ -103,7 +154,7 @@ fn main() -> Result<(), tsap::Error> {
         .build()?;
 
     Ok(())
-}
+}*/
 
 /*fn main() -> Result<(), tsap::Error> {
     let p = Param::from(toml::toml!(

@@ -17,6 +17,6 @@ syn = { version = "1", features = ["extra-traits", "full"]}
 prettyplease = "0.1"
 
 [features]
-default = []
+default = ["toml"]
 toml = []
 impl_try = []

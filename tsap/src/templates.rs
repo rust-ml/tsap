@@ -53,7 +53,7 @@ impl Templates {
 pub struct RunCommand;
 
 impl Template for RunCommand {
-    fn resolve(&mut self, key: String, _map: Table, field: toml::Value) -> Value {
+    fn resolve(&mut self, _key: String, _map: Table, field: toml::Value) -> Value {
         let cmd = match field {
             Value::String(cmd) => cmd,
             _ => panic!("Not a string as command")

@@ -24,16 +24,14 @@ pub fn param(args: TokenStream, input: TokenStream) -> TokenStream {
     let model = model::analyze(item);
     let ir = Intermediate::lower(model);
     let tokens = codegen(ir);
-    println!("{}", &tokens);
     tokens.into()
 }
 
 fn codegen(ir: Intermediate) -> TokenStream {
-    let Intermediate {item, builder, impls} = ir;
+    let Intermediate {item, impls, .. } = ir;
 
     quote!(
         #item
-        #builder
         #impls
     ).into()
 }
