@@ -19,6 +19,7 @@ impl Default for Templates {
         Templates(HashMap::from([
             ("from_file".to_string(), Box::new(FromFile::default()) as DynTemplate),
             ("cmd".to_string(), Box::new(RunCommand::default()) as DynTemplate),
+            ("glob".to_string(), Box::new(GlobPattern::default()) as DynTemplate),
         ]))
     }
 }
@@ -67,6 +68,26 @@ impl Template for RunCommand {
         let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
         Value::String(stdout)
+    }
+}
+
+#[derive(Default)]
+pub struct GlobPattern;
+
+impl Template for GlobPattern {
+    fn resolve(&mut self, key: String, _map: Table, field: toml::Value) -> Value {
+        let pattern = match field {
+            Value::String(cmd) => cmd,
+            _ => panic!("Glob pattern not a string!"),
+        };
+
+        let path_list = glob::glob(&pattern).unwrap()
+            .filter_map(|x| x.ok())
+            .map(|x| Value::String(x.display().to_string()))
+            .collect::<Vec<_>>();
+
+        // override current node with content of file
+        Value::Array(path_list)
     }
 }
 

@@ -51,7 +51,7 @@ impl Intermediate {
                     self
                 }
 
-                fn #getter(&self) -> #arg_typ {
+                fn #getter(&self) -> #arg_typ_false {
                     self.0.root[#valname].clone().try_into().unwrap()
                 }
             )
