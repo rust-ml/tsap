@@ -1,6 +1,14 @@
 # Tree Structured Argument Parser
 
-Configure large and complex applications written in Rust similar to [Hydra](https://hydra.cc/). In the library modus builder pattern and automatic hyperparameter checking is added. When compiled with `toml` flag the functionality is extended with a template and serialization support.
+Configure large and complex applications written in Rust similar to [Hydra](https://hydra.cc/). In library modus a builder pattern and automatic hyperparameter check are added to structures. When compiled with `toml` flag the functionality is extended with templates and serialization support.
+
+Compared to Hydra there are several key differences:
+
+ - use TOML instead of YAML (because it is [hard](https://noyaml.com/) to [use](https://www.arp242.net/yaml-config.html))
+ - hyper-parameter check is enforced during compile time
+ - template engine allows different expansion, for example globbing, command line execution etc. 
+ - sourcing from different files has no special construct and is treated as a template
+ - integrated into Rust serde infrastructure 
 
 ## Example
 
