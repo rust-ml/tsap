@@ -66,4 +66,7 @@ you can then set subtrees of your configuration (use GRU model instead of BCResn
 ```bash
 cargo run --release -- seed=50 experiment.model.from_file.name=gru experiment.batch_size=32
 ```
+or use a different experiment mode (set to testing mode and load stored model)
+```bash
+cargo run --release -- experiment.from_file.name=test_model experiment.model.from_file.name=stored experiment.model.path=pretrained.pt
 ```
