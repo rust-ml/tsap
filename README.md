@@ -1,4 +1,4 @@
-# Tree Structured Argument Parser
+# Tree Structured Argument Parser (WIP)
 
 Configure large and complex applications written in Rust similar to [Hydra](https://hydra.cc/). In library modus a builder pattern and automatic hyperparameter check are added to structures. When compiled with `toml` flag the functionality is extended with templates and serialization support.
 
@@ -60,4 +60,10 @@ variant = "TrainModel"
 batch_size = 64
 model = { from_file = { base_path = "conf/model", name = "bcresnet" }}
 
+```
+you can then set subtrees of your configuration (use GRU model instead of BCResnet, change seed and batch size)
+
+```bash
+cargo run --release -- seed=50 experiment.model.from_file.name=gru experiment.batch_size=32
+```
 ```
