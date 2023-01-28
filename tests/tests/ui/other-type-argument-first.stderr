@@ -1,0 +1,23 @@
+error: parameter sets should have a const boolean to indicate checking
+
+         = help: add a const boolean as your first generic
+
+ --> tests/ui/other-type-argument-first.rs:4:1
+  |
+4 | / enum Param<'a, const C: bool> {
+5 | |     RandomForest,
+6 | |     SVClassifier
+7 | | }
+  | |_^
+
+error: parameter sets should have a const boolean to indicate checking
+
+         = help: add a const boolean as your first generic
+
+  --> tests/ui/other-type-argument-first.rs:10:1
+   |
+10 | / enum Param<T, const C: bool> {
+11 | |     RandomForest(T),
+12 | |     SVClassifier
+13 | | }
+   | |_^

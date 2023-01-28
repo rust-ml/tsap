@@ -16,7 +16,7 @@ fn merge(mut root: Value, action: Action) -> (Value, Vec<Action>) {
     let num = paths.len() - 1;
 
     for path in &paths[..=num-1] {
-        let local = match local {
+        match local {
             Value::Table(ref mut t) if t.contains_key(path) =>
                 local = t.get_mut(path).unwrap(),
             _ => return (root, vec![action])
@@ -170,7 +170,7 @@ impl TryFrom<toml::Value> for TomlBuilder {
     type Error = Error;
 
     fn try_from(root: toml::Value) -> Result<TomlBuilder> {
-        let mut builder = TomlBuilder {
+        let builder = TomlBuilder {
             templates: Templates::default(),
             actions: Vec::new(),
             root,

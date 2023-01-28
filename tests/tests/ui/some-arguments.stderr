@@ -1,0 +1,8 @@
+error: this attribute takes no arguments
+
+         = help: use #[param]
+
+ --> tests/ui/some-arguments.rs:3:9
+  |
+3 | #[param(should_not_have = "this")]
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^

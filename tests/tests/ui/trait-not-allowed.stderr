@@ -1,0 +1,10 @@
+error: item is not a struct or enum
+
+         = help: `#[params]` can only be used on structs or enums
+
+ --> tests/ui/trait-not-allowed.rs:4:1
+  |
+4 | / trait Param<const C: bool> {
+5 | |     type Assoc;
+6 | | }
+  | |_^

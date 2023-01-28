@@ -20,7 +20,6 @@ pub fn param(args: TokenStream, input: TokenStream) -> TokenStream {
     let item = parser::parse(args.into(), input.clone().into());
     let model = model::analyze(item);
     let ir = lower::Intermediate::lower(model.clone());
-    let tokens = quote!(#ir);
 
     #[cfg(feature="toml")]
     let res = {

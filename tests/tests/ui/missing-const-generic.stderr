@@ -1,0 +1,10 @@
+error: parameter sets should have a const boolean to indicate checking
+
+         = help: add a const boolean as your first generic
+
+ --> tests/ui/missing-const-generic.rs:4:1
+  |
+4 | / struct Param {
+5 | |     no_const: u32
+6 | | }
+  | |_^

@@ -5,7 +5,6 @@ use crate::model::{Model, ModelFields};
 #[derive(Debug)]
 pub struct Intermediate {
     pub(crate) item: TokenStream,
-    pub(crate) builder: TokenStream,
     pub(crate) impls: TokenStream,
 }
 
@@ -13,7 +12,7 @@ impl Intermediate {
     pub(crate) fn lower(model: Model) -> Intermediate {
         let item2 = model.item_definition(Some(false));
 
-        let Model { name, check_name, item, fields, .. } = model;
+        let Model { name, fields, .. } = model;
 
         let builder_name = format_ident!("{}Builder", name);
         let builder = quote!(
@@ -35,7 +34,6 @@ impl Intermediate {
             let valname = format!("{}", name);
             let typ = typ.as_ref().unwrap();
             let arg_typ_false = typ.quote(Some(false));
-            let arg_typ = typ.quote(None);
 
             quote!(
                 fn #name<F: FnOnce(#arg_typ_false) -> #arg_typ_false>(mut self, val: F) -> Self {
@@ -119,7 +117,6 @@ impl Intermediate {
 
         Intermediate {
             item,
-            builder: builder,
             impls: impls,
         }
     }

@@ -84,7 +84,7 @@ impl Template for RunCommand {
 pub struct GlobPattern;
 
 impl Template for GlobPattern {
-    fn resolve(&mut self, key: String, _map: Table, field: toml::Value) -> Value {
+    fn resolve(&mut self, _key: String, _map: Table, field: toml::Value) -> Value {
         let pattern = match field {
             Value::String(cmd) => cmd,
             _ => panic!("Glob pattern not a string!"),

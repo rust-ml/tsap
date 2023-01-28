@@ -1,4 +1,4 @@
-use syn::{Item, Ident};
+use syn::Ident;
 use proc_macro2::TokenStream;
 use quote::{quote, format_ident};
 

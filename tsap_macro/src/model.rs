@@ -1,4 +1,4 @@
-use syn::{Item, Ident, Type, Fields, GenericParam, FieldsUnnamed, PathArguments, AngleBracketedGenericArguments, GenericArgument, TypePath, punctuated::Punctuated, token::{Comma, Colon2}, PathSegment, TypeTraitObject, TypeParamBound, visit::{self, Visit}, visit_mut::{self, VisitMut}};
+use syn::{Item, Ident, Type, Fields, GenericParam, FieldsUnnamed, punctuated::Punctuated, token::Comma, PathSegment, visit::{self, Visit}, visit_mut::{self, VisitMut}};
 use proc_macro_error::abort;
 use quote::quote;
 use proc_macro2::{TokenStream, Span};
@@ -33,6 +33,10 @@ impl VisitMut for ReplaceCheck {
     }
 }
 
+/// Type of a field, either named in struct or unnamed in enums
+///
+/// Carries information whether we want to track check status of wrapped type
+/// in `const_name` optionality.
 #[derive(Debug, Clone)]
 pub struct ModelType {
     wrapped: Type,
@@ -40,23 +44,26 @@ pub struct ModelType {
 }
 
 impl ModelType {
+    /// Construct a field type with const generic parameter
+    ///
+    /// Checks if const generic parameter exists in the wrapped type
     pub fn new(typ: &Type, const_name: &Ident) -> ModelType {
         let mut visitor = FindCheck { found: false, const_name };
         visitor.visit_type(typ);
         
-        if visitor.found {
-            ModelType {
-                wrapped: typ.clone(),
-                const_name: Some(const_name.clone()),
-            }
-        } else {
-            ModelType {
-                wrapped: typ.clone(),
-                const_name: None,
-            }
+        let const_name = match visitor.found {
+            true => Some(const_name.clone()),
+            false => None,
+        };
+
+        ModelType {
+            wrapped: typ.clone(),
+            const_name,
         }
     }
 
+    /// Create a token stream from the type and fills in definitions of const
+    /// generic parameter
     pub fn quote(&self, checked: Option<bool>) -> TokenStream {
         if let Some(const_name) = &self.const_name {
             let check_param = match checked {
@@ -77,11 +84,18 @@ impl ModelType {
         }
     }
 
+    /// Contains const generic in field type
     pub fn has_const_name(&self) -> bool {
         self.const_name.is_some()
     }
 }
 
+/// Fields of annotated structures
+///
+/// We only support single, unnamed field in enum variants and named structure 
+/// fields. For named enum variants the inner definition should go in a separate
+/// struct. For unnamed struct variants no useful composition function names can
+/// be derived. Traits are not supported.
 #[derive(Debug, Clone)]
 pub enum ModelFields {
     Enum(Vec<(Ident, Option<ModelType>)>),
@@ -98,6 +112,7 @@ pub struct Model {
 }
 
 impl Model {
+    /// Return argument parameters of item
     pub(crate) fn param_args(&self) -> Punctuated<Ident, Comma> {
         self.rem_param_types.iter()
             .map(|x| match x {
@@ -108,6 +123,7 @@ impl Model {
             .collect()
     }
 
+    /// Return item definition with filled-in checked parameter
     pub(crate) fn item_definition(&self, checked: Option<bool>) -> TokenStream {
         let check_param = match checked {
             Some(true) => Ident::new("true", Span::call_site()),

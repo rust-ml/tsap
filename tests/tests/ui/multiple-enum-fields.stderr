@@ -1,0 +1,10 @@
+error: we don't support variants with more than one field
+
+         = help: `#[params]' can only be used on enum with single field variants
+
+ --> tests/ui/multiple-enum-fields.rs:4:1
+  |
+4 | / enum Param<const C: bool> {
+5 | |     NotSupported(f32, f32)
+6 | | }
+  | |_^
