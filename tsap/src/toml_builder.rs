@@ -16,39 +16,52 @@ fn merge(mut root: Value, action: Action) -> (Value, Vec<Action>) {
     // first iterate through root until we are after our path base
     let mut local = &mut root;
     let paths = action.path().0.clone();
-    let num = paths.len() - 1;
 
-    for path in &paths[..=num-1] {
-        match local {
-            Value::Table(ref mut t) if t.contains_key(path) =>
-                local = t.get_mut(path).unwrap(),
+    let deferred = if paths.len() == 0 {
+        match action {
+            Action::Delete(_) => { Vec::new() },
+            Action::Set(_, val) => 
+                merge_use_second(local, val, Mode::Set),
+            Action::Modify(_, val) => 
+                merge_use_second(local, val, Mode::Modify),
+        }
+    } else {
+        let num = paths.len() - 1;
+
+        for path in &paths[..num] {
+            match local {
+                Value::Table(ref mut t) if t.contains_key(path) =>
+                    local = t.get_mut(path).unwrap(),
+                _ => return (root, vec![action])
+            };
+        }
+
+        let local = match local {
+            Value::Table(ref mut t) if t.contains_key(&paths[num]) => t,
             _ => return (root, vec![action])
         };
-    }
 
-    let local = match local {
-        Value::Table(ref mut t) if t.contains_key(&paths[num]) => t,
-        _ => return (root, vec![action])
-    };
 
-    // now that we are at the base, use recursive merging
-    let deferred = match action {
-        Action::Delete(_) => { local.remove(&paths[num]).unwrap(); Vec::new() },
-        Action::Set(_, val) => 
-            merge_use_second(local.get_mut(&paths[num]).unwrap(), val, Mode::Set),
-        Action::Modify(_, val) => 
-            merge_use_second(local.get_mut(&paths[num]).unwrap(), val, Mode::Modify),
+        // now that we are at the base, use recursive merging
+        match action {
+            Action::Delete(_) => { local.remove(&paths[num]).unwrap(); Vec::new() },
+            Action::Set(_, val) => 
+                merge_use_second(local.get_mut(&paths[num]).unwrap(), val, Mode::Set),
+            Action::Modify(_, val) => 
+                merge_use_second(local.get_mut(&paths[num]).unwrap(), val, Mode::Modify),
+        }
     };
 
     // add base path again if something is deferred
     let deferred = deferred.into_iter().map(|mut p| {
         let mut new = paths.clone();
-        new.append(&mut p.mut_path().0);
+        new.extend(p.path().0.clone().into_iter().rev());
 
         p.mut_path().0 = new;
 
         p
     }).collect();
+
 
     (root, deferred)
 }
@@ -98,10 +111,28 @@ impl FromStr for Path {
     type Err = Error;
 
     fn from_str(path: &str) -> Result<Path> {
+        if path.is_empty() {
+            return Ok(Path(Vec::new()));
+        }
+
         let parsed_path = path.split('.').map(|x| x.to_string())
             .collect::<Vec<_>>();
 
         Ok(Path(parsed_path))
+    }
+}
+
+impl From<&str> for Path {
+    fn from(path: &str) -> Path {
+        if path.is_empty() {
+            return Path(Vec::new());
+        }
+
+        let parsed_path = path.split('.').map(|x| x.to_string())
+            .collect::<Vec<_>>();
+
+        Path(parsed_path)
+
     }
 }
 
@@ -223,17 +254,20 @@ impl TomlBuilder {
             }
 
             let elm = if mode != Mode::Delete {
-                if arg.matches('=').count() != 1 {
-                    return Err(Error::InvalidArg(arg));
-                }
+                //if arg.matches('=').count() != 1 {
+                //    return Err(Error::InvalidArg(arg));
+                //}
 
-                let elms = arg.splitn(2, '=').into_iter().collect::<Vec<_>>();
-                let path = Path::from_str(&elms[0]).unwrap();
-                let value = if let Ok(val) = elms[1].parse::<i64>() {
-                    Value::Integer(val)
-                } else {
-                    Value::String(elms[1].to_string())
-                };
+                //let elms = arg.splitn(2, '=').into_iter().collect::<Vec<_>>();
+                //let path = Path::from_str(&elms[0]).unwrap();
+                let value = toml::from_str(&arg)?;
+                let path = Path(Vec::new());
+                
+                //let value = if let Ok(val) = elms[1].parse::<i64>() {
+                //    Value::Integer(val)
+                //} else {
+                //    Value::String(elms[1].to_string())
+                //};
 
                 match mode {
                     Mode::Modify => Action::Modify(path, value),
@@ -293,27 +327,22 @@ impl TomlBuilder {
         }
     }
 
-    //pub fn amend_file<T: AsRef<Path>>(mut self, path: T) -> Result<Self> {
-    //    let mut f = File::open(path)?;
-    //    let mut content = String::new();
-    //    f.read_to_string(&mut content)?;
-    //    let root: toml::Value = content.parse()?;
-    //    let root = self.templates.resolve(root);
-    //    // merge both dictionaries
-    //    self.root = merge_use_second(self.root, root)?;
-    //    Ok(self)
-    //}
+    pub fn amend_file<T: AsRef<std::path::Path>>(self, path: T) -> Result<Self> {
+        let mut f = File::open(path)?;
+        let mut content = String::new();
+        f.read_to_string(&mut content)?;
 
-    //pub fn amend<T: TryInto<Value>>(mut self, val: T) -> Result<Self>
-    //    where Error: From<<T as TryInto<Value>>::Error> {
-    //    let root = val.try_into()?;
-    //    let root = self.templates.resolve(root);
+        self.amend("", &content)
+    }
 
-    //    // merge both dictionaries
-    //    self.root = merge_use_second(self.root, root)?;
+    pub fn amend<P: Into<Path>, T: AsRef<str>>(mut self, path: P, val: T) -> Result<Self> {
+        let path = path.into();
+        let root = toml::from_str(val.as_ref())?;
 
-    //    Ok(self)
-    //}
+        self.actions.push(Action::Set(path, root));
+
+        Ok(self)
+    }
     
     pub fn root(self) -> toml::Value {
         self.root
@@ -336,6 +365,5 @@ mod tests {
 path = 'data/cifar10/'
 "#;
         let builder: TomlBuilder = content.try_into().unwrap();
-        dbg!(&builder.root);
     }
 }

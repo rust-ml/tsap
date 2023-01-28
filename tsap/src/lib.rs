@@ -11,7 +11,7 @@ mod error;
 
 pub use error::{Result, Error};
 #[cfg(feature = "toml")]
-pub use toml_builder::{TomlBuilder, toml, serde};
+pub use toml_builder::{TomlBuilder, toml, serde, Path};
 
 pub trait ParamGuard {
     type Error;

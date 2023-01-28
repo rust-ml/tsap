@@ -70,3 +70,8 @@ or use a different experiment mode (set to testing mode and load stored model)
 ```bash
 cargo run --release -- experiment.from_file.name=test_model experiment.model.from_file.name=stored experiment.model.path=pretrained.pt
 ```
+
+you can also use inline maps in TOML style
+
+```
+cargo run --release -- 'dataloader.mix_snr = { Uniform = { low = 10, high = 30 }}'

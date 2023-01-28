@@ -1,4 +1,5 @@
 use thiserror::Error;
+use std::convert::Infallible;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -23,4 +24,10 @@ pub enum Error {
         #[from]
         source: std::io::Error,
     },
+}
+
+impl From<Infallible> for Error {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
+    }
 }

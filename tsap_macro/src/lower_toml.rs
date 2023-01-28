@@ -99,7 +99,13 @@ impl Intermediate {
 
             impl #builder_name {
                 pub fn amend_file<T: AsRef<std::path::Path>>(mut self, path: T) -> Result<#builder_name, <#item2 as ParamGuard>::Error> {
-                    //self.0 = self.0.amend_file(path)?;
+                    self.0 = self.0.amend_file(path)?;
+
+                    Ok(self)
+                }
+
+                pub fn amend<P: Into<tsap::Path>, T: AsRef<str>>(mut self, path: P, val: T) -> Result<Self, <#item2 as ParamGuard>::Error> {
+                    self.0 = self.0.amend(path, val)?;
 
                     Ok(self)
                 }
