@@ -6,6 +6,9 @@ use std::mem;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 
+pub use serde;
+pub use toml;
+
 use toml::Value;
 use crate::{Result, Error, templates::Templates};
 

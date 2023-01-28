@@ -10,7 +10,8 @@ pub mod templates;
 mod error;
 
 pub use error::{Result, Error};
-pub use toml_builder::TomlBuilder;
+#[cfg(feature = "toml")]
+pub use toml_builder::{TomlBuilder, toml, serde};
 
 pub trait ParamGuard {
     type Error;

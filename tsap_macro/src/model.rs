@@ -1,4 +1,4 @@
-use syn::{Item, Ident, Type, Fields, GenericParam, FieldsUnnamed, punctuated::Punctuated, token::Comma, PathSegment, visit::{self, Visit}, visit_mut::{self, VisitMut}};
+use syn::{Item, Ident, Type, Fields, GenericParam, FieldsUnnamed, punctuated::Punctuated, token::Comma, PathSegment, visit::{self, Visit}, visit_mut::{self, VisitMut}, Visibility};
 use proc_macro_error::abort;
 use quote::quote;
 use proc_macro2::{TokenStream, Span};
@@ -133,6 +133,15 @@ impl Model {
 
         let (name, args) = (&self.name, self.param_args());
         quote!(#name<#check_param, #args>)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn visibility(&self) -> Visibility {
+        match self.item {
+            Item::Enum(ref obj) => obj.vis.clone(),
+            Item::Struct(ref obj) => obj.vis.clone(),
+            _ => unreachable!(),
+        }
     }
 }
 

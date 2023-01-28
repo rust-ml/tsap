@@ -15,5 +15,5 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 glob = "0.3"
 
 [features]
-default = ["toml"]
-toml = ["dep:serde", "dep:toml"]
+default = []
+toml = ["dep:serde", "dep:toml", "tsap_macro/toml"]

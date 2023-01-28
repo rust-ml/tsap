@@ -12,11 +12,12 @@ impl Intermediate {
     pub(crate) fn lower(model: Model) -> Intermediate {
         let item2 = model.item_definition(Some(false));
 
+        let visibility = model.visibility();
         let Model { name, fields, .. } = model;
 
         let builder_name = format_ident!("{}Builder", name);
         let builder = quote!(
-            pub struct #builder_name(tsap::TomlBuilder);
+            #visibility struct #builder_name(tsap::TomlBuilder);
         );
 
         let item = quote!(
@@ -41,7 +42,7 @@ impl Intermediate {
                     let table = self.0.root.as_table_mut().unwrap();
                     let old_val: #arg_typ_false = table.remove(#valname).unwrap().try_into().unwrap();
                     let val: #arg_typ_false = val(old_val);
-                    table.insert(#valname.to_string(), toml::Value::try_from(val).unwrap());
+                    table.insert(#valname.to_string(), tsap::toml::Value::try_from(val).unwrap());
 
                     self
                 }
@@ -68,7 +69,7 @@ impl Intermediate {
 
             impl std::convert::From<#item2> for #builder_name {
                 fn from(val: #item2) -> #builder_name {
-                    let val = toml::Value::try_from(val).unwrap();
+                    let val = tsap::toml::Value::try_from(val).unwrap();
 
                     use std::convert::TryFrom;
                     let val = tsap::TomlBuilder::try_from(val).unwrap();

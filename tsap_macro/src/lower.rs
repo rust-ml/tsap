@@ -274,8 +274,8 @@ impl Intermediate {
         #[cfg(feature="toml")]
         let item = {
             quote!(
-                #[derive(serde::Serialize, serde::Deserialize)]
-                #[serde(tag = "variant")]
+                #[derive(tsap::serde::Serialize, tsap::serde::Deserialize)]
+                #[serde(tag = "variant", crate="tsap::serde")]
                 #item
             )
         };
